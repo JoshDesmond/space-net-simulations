@@ -1,4 +1,3 @@
-
 INCLUDE_DIRECTORIES(
 	.
 	${BULLET_PHYSICS_SOURCE_DIR}/src
@@ -221,6 +220,8 @@ SET(BulletExampleBrowser_SRCS
 	../Planar2D/Planar2D.h
 	../RollingFrictionDemo/RollingFrictionDemo.cpp
 	../RollingFrictionDemo/RollingFrictionDemo.h
+	../SoftDemo/SoftDemo.cpp
+	../SoftDemo/SoftDemo.h
 	../FractureDemo/FractureDemo.cpp
 	../FractureDemo/btFractureBody.cpp
 	../FractureDemo/btFractureDynamicsWorld.cpp

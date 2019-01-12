@@ -173,7 +173,6 @@ static ExampleEntry gDefaultExamples[] =
 		ExampleEntry(1, "Spheres & Plane C-API (Bullet2)", "Collision C-API using Bullet 2.x backend", CollisionTutorialBullet2CreateFunc, TUT_SPHERE_PLANE_BULLET2),
 //ExampleEntry(1, "Spheres & Plane C-API (Bullet3)", "Collision C-API using Bullet 3.x backend", CollisionTutorialBullet2CreateFunc,TUT_SPHERE_PLANE_RTB3),
 
-#ifdef INCLUDE_CLOTH_DEMOS
 		ExampleEntry(0, "Soft Body"),
 		ExampleEntry(1, "Cloth", "Simulate a patch of cloth.", SoftDemoCreateFunc, 0),
 
@@ -209,8 +208,6 @@ static ExampleEntry gDefaultExamples[] =
 		ExampleEntry(1, "Cluster Stack Mixed", "Stacking of soft bodies and rigid bodies.", SoftDemoCreateFunc, 29),
 		ExampleEntry(1, "Tetra Cube", "Simulate a volumetric soft body cube defined by tetrahedra.", SoftDemoCreateFunc, 30),
 		ExampleEntry(1, "Tetra Bunny", "Simulate a volumetric soft body Stanford bunny defined by tetrahedra.", SoftDemoCreateFunc, 31),
-
-#endif  //INCLUDE_CLOTH_DEMOS
 
 		///we disable the benchmarks in debug mode, they are way too slow and benchmarking in debug mode is not recommended
 		//#ifndef _DEBUG
