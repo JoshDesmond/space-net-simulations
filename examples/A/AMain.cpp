@@ -5,17 +5,13 @@
 #include <stdio.h>
 #include "btBulletDynamicsCommon.h"
 
+btDiscreteDynamicsWorld *getWorld();
+
 int main(int argc, char **argv) {
     printf("Hello");
 
-    btDefaultCollisionConfiguration *collisionConfiguration = new btDefaultCollisionConfiguration();
-    btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfiguration);
-    btBroadphaseInterface *overlappingPairCache = new btDbvtBroadphase();
-    btSequentialImpulseConstraintSolver *solver = new btSequentialImpulseConstraintSolver;
+    btDiscreteDynamicsWorld *dynamicsWorld = getWorld();
 
-    btDiscreteDynamicsWorld *dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver,
-                                                                         collisionConfiguration);
-    dynamicsWorld->setGravity(btVector3(0, 0, 0));
 
     btCollisionShape *boxShape = new btBoxShape(btVector3(1, 1, 1));
     btTransform startTransform;
@@ -26,8 +22,7 @@ int main(int argc, char **argv) {
     boxShape->calculateLocalInertia(mass, localInertia);
 
     startTransform.setOrigin(btVector3(0, 10, 0));
-
-    startTransform.setRotation(btQuaternion(1,1,1,1));
+    startTransform.setRotation(btQuaternion(0,0,1,1));
 
     btDefaultMotionState *myMotionState = new btDefaultMotionState(startTransform);
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, boxShape, localInertia);
@@ -78,15 +73,19 @@ int main(int argc, char **argv) {
 
     //delete dynamics world
     delete dynamicsWorld;
+}
 
-    //delete solver
-    delete solver;
+btDiscreteDynamicsWorld *getWorld() {
+    btDefaultCollisionConfiguration *collisionConfiguration = new btDefaultCollisionConfiguration();
+    btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfiguration);
+    btBroadphaseInterface *overlappingPairCache = new btDbvtBroadphase();
+    btSequentialImpulseConstraintSolver *solver = new btSequentialImpulseConstraintSolver;
 
-    //delete broadphase
-    delete overlappingPairCache;
+    btDiscreteDynamicsWorld *dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver,
+                                                                         collisionConfiguration);
+    dynamicsWorld->setGravity(btVector3(0, 0, 0));
 
-    //delete dispatcher
-    delete dispatcher;
+    return dynamicsWorld;
 
-    delete collisionConfiguration;
+    // TODO store references to items so you can delete them at shutdown?
 }
