@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
 
     btDiscreteDynamicsWorld *dynamicsWorld = getWorld();
 
-
     btCollisionShape *boxShape = new btBoxShape(btVector3(1, 1, 1));
     btTransform startTransform;
     startTransform.setIdentity();
@@ -75,6 +74,10 @@ int main(int argc, char **argv) {
     delete dynamicsWorld;
 }
 
+/**
+ * Creates and returns an initialized btDiscreteDynamics World
+ * @return
+ */
 btDiscreteDynamicsWorld *getWorld() {
     btDefaultCollisionConfiguration *collisionConfiguration = new btDefaultCollisionConfiguration();
     btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfiguration);
