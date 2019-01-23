@@ -28,7 +28,7 @@ subject to the following restrictions:
 
 #define SIM_HERTZ 300. // 300 hertz for higher accuracy
 
-static btScalar gRopeResolution = 5;  // default rope resolution (number of links as in a chain)
+static btScalar gRopeResolution = 0;  // default rope resolution (number of links as in a chain)
 
 
 struct A2Example : public CommonRigidBodyBase
@@ -50,7 +50,7 @@ struct A2Example : public CommonRigidBodyBase
 		m_solver = new btSequentialImpulseConstraintSolver;
 
 		m_dynamicsWorld = new btSoftRigidDynamicsWorld(m_dispatcher, m_broadphase, m_solver, m_collisionConfiguration);
-		m_dynamicsWorld->setGravity(btVector3(0, -10, 0));
+		m_dynamicsWorld->setGravity(btVector3(0, 0, 0));
 
 		softBodyWorldInfo.m_broadphase = m_broadphase;
 		softBodyWorldInfo.m_dispatcher = m_dispatcher;
@@ -91,11 +91,10 @@ void A2Example::stepSimulation(float deltaTime)
 {
     if (m_dynamicsWorld)
     {
-
         btScalar timeStep = deltaTime;
         int maxSubSteps=1;
         btScalar fixedTimeStep=btScalar(1.)/btScalar(SIM_HERTZ);
-        // It is necessary that timeStep < maxSubSteps * fixedTimeStep
+        // It is recommended/necessary that timeStep < maxSubSteps * fixedTimeStep
 
         m_dynamicsWorld->stepSimulation(timeStep,maxSubSteps,fixedTimeStep);
     }
@@ -106,11 +105,11 @@ void A2Example::initPhysics()
 	m_guiHelper->setUpAxis(1);
 
 	createEmptyDynamicsWorld();
-	m_dynamicsWorld->setGravity(btVector3(0,0,0));
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
 	if (m_dynamicsWorld->getDebugDrawer())
-		m_dynamicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe + btIDebugDraw::DBG_DrawContactPoints);
+		m_dynamicsWorld->getDebugDrawer()->setDebugMode(
+				btIDebugDraw::DBG_DrawWireframe + btIDebugDraw::DBG_DrawContactPoints + btIDebugDraw::DBG_DrawConstraints + btIDebugDraw::DBG_DrawConstraintLimits);
 
 	///create target rigid body
 	{
@@ -164,7 +163,7 @@ void A2Example::initPhysics()
 		body->setDamping(btScalar(0), btScalar(0));
 		body->setSleepingThresholds(btScalar(0), btScalar(0));
 
-		body->applyCentralForce(btVector3(1000,0,0));
+		body->applyCentralForce(btVector3(100,0,0));
 	}
 
 	createNet();
@@ -175,6 +174,17 @@ void A2Example::initPhysics()
 void A2Example::renderScene()
 {
 	CommonRigidBodyBase::renderScene();
+	btSoftRigidDynamicsWorld* softWorld = getSoftDynamicsWorld();
+
+	for (int i = 0; i < softWorld->getSoftBodyArray().size(); i++)
+	{
+		btSoftBody* psb = (btSoftBody*)softWorld->getSoftBodyArray()[i];
+		//if (softWorld->getDebugDrawer() && !(softWorld->getDebugDrawer()->getDebugMode() & (btIDebugDraw::DBG_DrawWireframe)))
+		{
+			btSoftBodyHelpers::DrawFrame(psb, softWorld->getDebugDrawer());
+			btSoftBodyHelpers::Draw(psb, softWorld->getDebugDrawer(), softWorld->getDrawFlags());
+		}
+	}
 }
 
 void A2Example::createNet() {
@@ -201,26 +211,41 @@ void A2Example::createNet() {
 		for(j = 0; j < width; j++){
 			if (j != width - 1) {
 				// connectWithMassSpringConstraints([i, j], [i, j+1]);
-				connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + 1]);
+				//connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + 1]);
+				connectWithRope(nodes[i*width + j], nodes[i*width+j + 1]);
 				printf("connecting width (%i,%i)\n", i, j);
 				printf("points are (%i), and (%i)\n", i*width + j, i*width+j + 1);
 			}
 			if (i != length - 1) {
 				// connectWithMassSpringConstraints([i, j],[i + 1, j]);
-				connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + width]);
+				//connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + width]);
+				connectWithRope(nodes[i*width + j], nodes[i*width+j + width]);
 				printf("connecting length (%i,%i)\n", i, j);
 				printf("points are (%i), and (%i)\n", i*width + j, i*width+j + width);
 			}
 		}
 	}
 
-	btRigidBody* node1 = createNode(0,3,0, nodeShape);
-	btRigidBody* node2 = createNode(1,3,0, nodeShape);
-	connectWithMassSpringConstraints(node1,node2);
+	// temp corners shooting
+	btAlignedObjectArray<btRigidBody*> corners;
+	corners.push_back(nodes[0]);
+	corners.push_back(nodes[length]);
+	corners.push_back(nodes[length*width - length - 1]);
+	corners.push_back(nodes[length*width-1]);
+
+	for (i = 0; i < 4; i++) {
+	    corners[i]->applyCentralForce(btVector3(0,-1000,0));
+	}
 }
 
 void A2Example::connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody *body2) {
-	btPoint2PointConstraint* spring = new btPoint2PointConstraint(*body1, *body2, btVector3(0, 0, 0), btVector3(0, 0, 0));
+	btTransform localA;
+	btTransform localB;
+	localA.setIdentity();
+	localA.getOrigin() = btVector3(.25, 0, 0);
+	localB.setIdentity();
+	localB.setOrigin(btVector3(-.25, 0, 0));
+	btGeneric6DofSpringConstraint* spring = new btGeneric6DofSpringConstraint(*body1, *body2, localA, localB, true);
 	m_dynamicsWorld->addConstraint(spring);
 
 }
@@ -229,7 +254,7 @@ void A2Example::connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody
 void A2Example::connectWithRope(btRigidBody* body1, btRigidBody* body2)
 { // Copied from NewtonsRopeCradle.cpp
 	btSoftBody* softBodyRope0 = btSoftBodyHelpers::CreateRope(softBodyWorldInfo, body1->getWorldTransform().getOrigin(), body2->getWorldTransform().getOrigin(), gRopeResolution, 0);
-	softBodyRope0->setTotalMass(0.1f);
+	softBodyRope0->setTotalMass(0.01f);
 
 	softBodyRope0->appendAnchor(0, body1);
 	softBodyRope0->appendAnchor(softBodyRope0->m_nodes.size() - 1, body2);
@@ -245,18 +270,17 @@ void A2Example::connectWithRope(btRigidBody* body1, btRigidBody* body2)
 
 
 btRigidBody* A2Example::createNode(int x, int y, int z, btSphereShape* shape) {
-	// TODO make single nodeShape shared between all nodes
 	btSphereShape* nodeShape = shape;
 
 	btTransform startTransform;
 	startTransform.setIdentity();
 
-	btScalar mass(1.f);
+	btScalar mass(0.1f);
 
 	btVector3 localInertia(0,0,0);
 	nodeShape->calculateLocalInertia(mass, localInertia);
 
-	startTransform.setOrigin(btVector3(x,y,z));
+	startTransform.setOrigin(btVector3(.5 * x ,y, .5 * z));
 
 	btRigidBody* body = createRigidBody(mass, startTransform, nodeShape);
 

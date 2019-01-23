@@ -93,17 +93,19 @@ int main(int argc, char* argv[])
         app->m_instancingRenderer->init();
         app->m_instancingRenderer->updateCamera(app->getUpAxis());
 
-        /** original step simulation call
+        /**
+        //original step simulation call
         btScalar dtSec = btScalar(clock.getTimeInSeconds());
         if (dtSec < 0.1)
             dtSec = 0.1;
 
         example->stepSimulation(dtSec);
         clock.reset();
-         */
+        example->renderScene();
+        */
 
         // Changed to this because I want constant time
-        example->stepSimulation(0.1);
+        example->stepSimulation(0.01);
         example->renderScene();
 
         DrawGridData dg;
