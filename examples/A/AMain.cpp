@@ -23,10 +23,12 @@ int main(int argc, char **argv) {
     startTransform.setOrigin(btVector3(0, 10, 0));
     startTransform.setRotation(btQuaternion(0,0,1,1));
 
+
     btDefaultMotionState *myMotionState = new btDefaultMotionState(startTransform);
     btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, boxShape, localInertia);
     btRigidBody *body = new btRigidBody(rbInfo);
 
+    body->setAngularVelocity(btVector3(0,.5,0));
     dynamicsWorld->addRigidBody(body);
 
 
@@ -51,9 +53,14 @@ int main(int argc, char **argv) {
             printf("world pos object %d = %f,%f,%f\n", j, float(trans.getOrigin().getX()),
                    float(trans.getOrigin().getY()), float(trans.getOrigin().getZ()));
         }
-
-        printf("%f", body->getOrientation().getAngle());
     }
+
+    btDefaultSerializer* serializer = new btDefaultSerializer();
+    dynamicsWorld->serialize(serializer);
+    FILE* file = fopen("testFile.bullet","wb");
+    printf("bleh");
+    fwrite(serializer->getBufferPointer(),serializer->getCurrentBufferSize(),1, file);
+    fclose(file);
 
 
     //remove the rigidbodies from the dynamics world and delete them
