@@ -56,7 +56,14 @@ struct A2Example : public CommonRigidBodyBase
 		softBodyWorldInfo.m_dispatcher = m_dispatcher;
 		softBodyWorldInfo.m_gravity = m_dynamicsWorld->getGravity();
 		softBodyWorldInfo.m_sparsesdf.Initialize();
-	}
+
+        m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
+
+        if (m_dynamicsWorld->getDebugDrawer())
+            m_dynamicsWorld->getDebugDrawer()->setDebugMode(
+                    btIDebugDraw::DBG_DrawWireframe + btIDebugDraw::DBG_DrawContactPoints /** + btIDebugDraw::DBG_DrawConstraints + btIDebugDraw::DBG_DrawConstraintLimits */);
+
+    }
 	virtual void connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody *body2);
 	virtual void connectWithRope(btRigidBody* body1, btRigidBody* body2);
 	void resetCamera()
@@ -105,11 +112,6 @@ void A2Example::initPhysics()
 	m_guiHelper->setUpAxis(1);
 
 	createEmptyDynamicsWorld();
-	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
-
-	if (m_dynamicsWorld->getDebugDrawer())
-		m_dynamicsWorld->getDebugDrawer()->setDebugMode(
-				btIDebugDraw::DBG_DrawWireframe + btIDebugDraw::DBG_DrawContactPoints + btIDebugDraw::DBG_DrawConstraints + btIDebugDraw::DBG_DrawConstraintLimits);
 
 	///create target rigid body
 	{
@@ -182,6 +184,7 @@ void A2Example::renderScene()
 		//if (softWorld->getDebugDrawer() && !(softWorld->getDebugDrawer()->getDebugMode() & (btIDebugDraw::DBG_DrawWireframe)))
 		{
 			btSoftBodyHelpers::DrawFrame(psb, softWorld->getDebugDrawer());
+			softWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_NoDebug);
 			btSoftBodyHelpers::Draw(psb, softWorld->getDebugDrawer(), softWorld->getDrawFlags());
 		}
 	}
@@ -226,15 +229,24 @@ void A2Example::createNet() {
 		}
 	}
 
-	// temp corners shooting
+	// Identify corners
 	btAlignedObjectArray<btRigidBody*> corners;
 	corners.push_back(nodes[0]);
-	corners.push_back(nodes[length]);
-	corners.push_back(nodes[length*width - length - 1]);
-	corners.push_back(nodes[length*width-1]);
+	corners.push_back(nodes[length - 1]);
+	corners.push_back(nodes[length*width - length]);
+	corners.push_back(nodes[length*width - 1]);
 
-	for (i = 0; i < 4; i++) {
-	    corners[i]->applyCentralForce(btVector3(0,-1000,0));
+	// Make a larger node for corners
+    btScalar mass(0.1f);
+    btSphereShape* largeNodeShape = new btSphereShape(.25);
+    btVector3 localInertia(0,0,0);
+    largeNodeShape->calculateLocalInertia(mass, localInertia);
+
+    for (i = 0; i < 4; i++) {
+        // apply changes to corners
+        corners[i]->setMassProps(1.f,localInertia);
+	    corners[i]->applyCentralForce(btVector3(0,-10000,0));
+	    corners[i]->setCollisionShape(largeNodeShape);
 	}
 }
 
