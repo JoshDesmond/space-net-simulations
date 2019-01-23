@@ -1,3 +1,8 @@
+# Space Net Simulations
+
+The following repository is a fork of the Bullet Phsyics SDK. Inside the examples folder there is code for a simulation I am working on which seeks to simulate the dynamics of tether nets in space. The examples don't currently run from the example browser, but have their own run configurations and executables which will show up after bullet as a whole is built.
+
+
 [![Travis Build Status](https://api.travis-ci.org/bulletphysics/bullet3.png?branch=master)](https://travis-ci.org/bulletphysics/bullet3)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/6sly9uxajr6xsstq)](https://ci.appveyor.com/project/erwincoumans/bullet3)
 
