@@ -115,14 +115,14 @@ void A2Example::initPhysics()
 
 	///create target rigid body
 	{
-		btBoxShape* colShape = createBoxShape(btVector3(1., 1., 1.));
+		btBoxShape* colShape = createBoxShape(btVector3(.5, .5, .5));
 		m_collisionShapes.push_back(colShape);
 
 		/// Create Dynamic Object
 		btTransform startTransform;
 		startTransform.setIdentity();
 
-		btScalar mass(10.f);
+		btScalar mass(40.f);
 
 		//rigidbody is dynamic if and only if mass is non zero, otherwise static
 		bool isDynamic = (mass != 0.f);
@@ -158,7 +158,7 @@ void A2Example::initPhysics()
 		btVector3 localInertia(0,0,0);
 		colShape->calculateLocalInertia(mass, localInertia);
 
-		startTransform.setOrigin(btVector3(-2,0,0));
+		startTransform.setOrigin(btVector3(-2,0,-8));
 
 		btRigidBody* body = createRigidBody(mass, startTransform, colShape);
 
@@ -203,7 +203,7 @@ void A2Example::createNet() {
 
 	for(i = 0; i < length; i++) {
 		for(j = 0; j < width; j++){
-			btRigidBody* node = createNode(i,3,j, nodeShape);
+			btRigidBody* node = createNode(i - (length/2),5,j - (length/2), nodeShape);
 			nodes.push_back(node);
 		}
 	}
@@ -237,7 +237,7 @@ void A2Example::createNet() {
 	corners.push_back(nodes[length*width - 1]);
 
 	// Make a larger node for corners
-    btScalar mass(0.1f);
+    btScalar mass(10.f);
     btSphereShape* largeNodeShape = new btSphereShape(.25);
     btVector3 localInertia(0,0,0);
     largeNodeShape->calculateLocalInertia(mass, localInertia);
@@ -248,6 +248,12 @@ void A2Example::createNet() {
 	    corners[i]->applyCentralForce(btVector3(0,-10000,0));
 	    corners[i]->setCollisionShape(largeNodeShape);
 	}
+
+    // rotations
+    corners[0]->applyCentralForce(btVector3(-5000,0,5000));
+    corners[1]->applyCentralForce(btVector3(5000,0,5000));
+    corners[2]->applyCentralForce(btVector3(-5000,0,-5000));
+    corners[3]->applyCentralForce(btVector3(5000,0,-5000));
 }
 
 void A2Example::connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody *body2) {
@@ -259,7 +265,6 @@ void A2Example::connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody
 	localB.setOrigin(btVector3(-.25, 0, 0));
 	btGeneric6DofSpringConstraint* spring = new btGeneric6DofSpringConstraint(*body1, *body2, localA, localB, true);
 	m_dynamicsWorld->addConstraint(spring);
-
 }
 
 
