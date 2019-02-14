@@ -26,9 +26,9 @@ subject to the following restrictions:
 #include "BulletSoftBody/btSoftBodyHelpers.h"
 #include "BulletSoftBody/btSoftBodyRigidBodyCollisionConfiguration.h"
 
-#define SIM_HERTZ 300. // 300 hertz for higher accuracy
+#define SIM_HERTZ 600. // 300 hertz for higher accuracy
 
-static btScalar gRopeResolution = 0;  // default rope resolution (number of links as in a chain)
+static btScalar gRopeResolution = 1;  // default rope resolution (number of links as in a chain)
 
 
 struct A2Example : public CommonRigidBodyBase
@@ -87,7 +87,10 @@ struct A2Example : public CommonRigidBodyBase
 
 	void createNet();
 
-	btRigidBody *createNode(int x, int y, int z, btSphereShape* shape);
+	btRigidBody *createNode(int x, int y, int z);
+	btRigidBody *createBulletNode(int x, int y, int z);
+
+	bool isCorner(int i, int j, const int length, const int width);
 };
 
 /**
@@ -122,7 +125,7 @@ void A2Example::initPhysics()
 		btTransform startTransform;
 		startTransform.setIdentity();
 
-		btScalar mass(40.f);
+		btScalar mass(SAT_MASS);
 
 		//rigidbody is dynamic if and only if mass is non zero, otherwise static
 		bool isDynamic = (mass != 0.f);
@@ -133,7 +136,7 @@ void A2Example::initPhysics()
 
 		startTransform.setOrigin(btVector3(
 			btScalar(0),
-			btScalar(0),
+			btScalar(-3),
 			btScalar(0)));
 
 		btRigidBody* body = createRigidBody(mass, startTransform, colShape);
@@ -191,20 +194,28 @@ void A2Example::renderScene()
 }
 
 void A2Example::createNet() {
-	btSphereShape* nodeShape = new btSphereShape(.1);
-	m_collisionShapes.push_back(nodeShape);
-
 	btAlignedObjectArray<btRigidBody*> nodes;
+	btAlignedObjectArray<btRigidBody*> bullets;
 
 
 	int i, j;
-	int length = 10;
-	int width = 10;
+    const int length = 15;
+	const int width = 15;
+    const int y = 3;
 
-	for(i = 0; i < length; i++) {
+    for(i = 0; i < length; i++) {
 		for(j = 0; j < width; j++){
-			btRigidBody* node = createNode(i - (length/2),5,j - (length/2), nodeShape);
+			const int x = i - (length / 2);
+			const int z = j - (width / 2);
+			btRigidBody* node = createNode(x, y, z);
 			nodes.push_back(node);
+
+			if (isCorner(i, j, length, width)) {
+				btRigidBody *corner = createBulletNode(x, y - 1, z);
+				bullets.push_back(corner);
+				//connectWithRope(node, corner);
+                connectWithMassSpringConstraints(node,corner);
+            }
 		}
 	}
 
@@ -214,46 +225,43 @@ void A2Example::createNet() {
 		for(j = 0; j < width; j++){
 			if (j != width - 1) {
 				// connectWithMassSpringConstraints([i, j], [i, j+1]);
-				//connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + 1]);
-				connectWithRope(nodes[i*width + j], nodes[i*width+j + 1]);
-				printf("connecting width (%i,%i)\n", i, j);
-				printf("points are (%i), and (%i)\n", i*width + j, i*width+j + 1);
+				connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + 1]);
+				//connectWithRope(nodes[i*width + j], nodes[i*width+j + 1]);
 			}
 			if (i != length - 1) {
 				// connectWithMassSpringConstraints([i, j],[i + 1, j]);
-				//connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + width]);
-				connectWithRope(nodes[i*width + j], nodes[i*width+j + width]);
-				printf("connecting length (%i,%i)\n", i, j);
-				printf("points are (%i), and (%i)\n", i*width + j, i*width+j + width);
+				connectWithMassSpringConstraints(nodes[i*width + j], nodes[i*width+j + width]);
+				//connectWithRope(nodes[i*width + j], nodes[i*width+j + width]);
 			}
 		}
 	}
 
+
+
 	// Identify corners
+	/*
 	btAlignedObjectArray<btRigidBody*> corners;
 	corners.push_back(nodes[0]);
 	corners.push_back(nodes[length - 1]);
 	corners.push_back(nodes[length*width - length]);
 	corners.push_back(nodes[length*width - 1]);
+*/
 
-	// Make a larger node for corners
-    btScalar mass(10.f);
-    btSphereShape* largeNodeShape = new btSphereShape(.25);
-    btVector3 localInertia(0,0,0);
-    largeNodeShape->calculateLocalInertia(mass, localInertia);
+
+	for (i = 0; i < nodes.size(); i++) {
+	    nodes[i]->applyCentralForce(btVector3(0,-100,0));
+	}
 
     for (i = 0; i < 4; i++) {
-        // apply changes to corners
-        corners[i]->setMassProps(1.f,localInertia);
-	    corners[i]->applyCentralForce(btVector3(0,-10000,0));
-	    corners[i]->setCollisionShape(largeNodeShape);
+        // launch bullets
+		bullets[i]->applyCentralForce(btVector3(0,-1000,0));
 	}
 
     // rotations
-    corners[0]->applyCentralForce(btVector3(-5000,0,5000));
-    corners[1]->applyCentralForce(btVector3(5000,0,5000));
-    corners[2]->applyCentralForce(btVector3(-5000,0,-5000));
-    corners[3]->applyCentralForce(btVector3(5000,0,-5000));
+	bullets[0]->applyCentralForce(btVector3(-300,0,300));
+	bullets[1]->applyCentralForce(btVector3(300,0,300));
+	bullets[2]->applyCentralForce(btVector3(-300,0,-300));
+	bullets[3]->applyCentralForce(btVector3(300,0,-300));
 }
 
 void A2Example::connectWithMassSpringConstraints(btRigidBody *body1, btRigidBody *body2) {
@@ -286,13 +294,14 @@ void A2Example::connectWithRope(btRigidBody* body1, btRigidBody* body2)
 }
 
 
-btRigidBody* A2Example::createNode(int x, int y, int z, btSphereShape* shape) {
-	btSphereShape* nodeShape = shape;
+btRigidBody* A2Example::createNode(int x, int y, int z) {
+	btSphereShape* nodeShape = new btSphereShape(.05);
+	m_collisionShapes.push_back(nodeShape);
 
 	btTransform startTransform;
 	startTransform.setIdentity();
 
-	btScalar mass(0.1f);
+	btScalar mass(MASS_MASS);
 
 	btVector3 localInertia(0,0,0);
 	nodeShape->calculateLocalInertia(mass, localInertia);
@@ -307,6 +316,48 @@ btRigidBody* A2Example::createNode(int x, int y, int z, btSphereShape* shape) {
 	return body;
 }
 
+btRigidBody* A2Example::createBulletNode(int x, int y, int z) {
+	btSphereShape* nodeShape = new btSphereShape(.05);
+	m_collisionShapes.push_back(nodeShape);
+
+	btTransform startTransform;
+	startTransform.setIdentity();
+
+	btScalar mass(BULLET_MASS);
+
+	btVector3 localInertia(0,0,0);
+	nodeShape->calculateLocalInertia(mass, localInertia);
+
+	startTransform.setOrigin(btVector3(.5 * x ,y, .5 * z));
+
+	btRigidBody* body = createRigidBody(mass, startTransform, nodeShape);
+
+	body->setDamping(btScalar(0), btScalar(0));
+	body->setSleepingThresholds(btScalar(0), btScalar(0));
+
+	return body;
+}
+
+/**
+ * Helper function in create net. Returns true if given indices are a corner.
+ */
+bool A2Example::isCorner(int i, int j, const int length, const int width) {
+	if (i == 0) {
+		if (j == 0) {
+			return true;
+		} else if (j == width - 1) {
+			return true;
+		}
+	} else if (i == length - 1) {
+		if (j == 0) {
+			return true;
+		} else if (j == width - 1) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 
 CommonExampleInterface* A2ExampleCreateFunc(CommonExampleOptions& options)

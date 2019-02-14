@@ -16,6 +16,14 @@ subject to the following restrictions:
 #ifndef A2_EXAMPLE_H
 #define A2_EXAMPLE_H
 
+static const double BULLET_RADIUS = .25;
+
+static const float BULLET_MASS = 0.1f;
+
+static const float MASS_MASS = 0.01f;
+
+static const float SAT_MASS = 40.f;
+
 class CommonExampleInterface* A2ExampleCreateFunc(struct CommonExampleOptions& options);
 
 #endif  //A2_PHYSICS_SETUP_H
